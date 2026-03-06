@@ -1,0 +1,49 @@
+name: 🔎 PR Validation
+
+on:
+  pull_request:
+    branches: [main, develop]
+    types: [opened, synchronize, reopened]
+
+jobs:
+  validate:
+    name:  Validate PR
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check PR title format
+        run: |
+          TITLE="${{ github.event.pull_request.title }}"
+          echo "PR Title: $TITLE"
+
+          if echo "$TITLE" | grep -qE "^(feat|fix|docs|test|chore|refactor|ci)(\(.+\))?: .+"; then
+            echo "PR title is valid"
+          else
+            echo " Invalid PR title: $TITLE"
+            echo ""
+            echo "Must follow: type(scope): description"
+            echo "Examples:"
+            echo "  feat(auth): add JWT login"
+            echo "  fix(validation): handle empty CSV"
+            echo "  devops(ci): add security scan"
+            echo "  test(rules): add null check edge cases"
+            exit 1
+          fi
+
+      - name: Check branch name format
+        run: |
+          BRANCH="${{ github.head_ref }}"
+          echo "Branch: $BRANCH"
+
+          if echo "$BRANCH" | grep -qE "^(feature|fix|hotfix|docs|test|chore)/.+"; then
+            echo " Branch name is valid"
+          else
+            echo " Invalid branch name: $BRANCH"
+            echo ""
+            echo "Must follow: type/description"
+            echo "Examples:"
+            echo "  feature/validation-engine"
+            echo "  fix/null-check-bug"
+            echo "  devops/add-ci-pipeline"
+            exit 1
+          fi
