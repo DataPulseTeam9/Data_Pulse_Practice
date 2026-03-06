@@ -1,4 +1,4 @@
-name: 🔎 PR Validation
+name:  PR Validation
 
 on:
   pull_request:
@@ -25,7 +25,7 @@ jobs:
             echo "Examples:"
             echo "  feat(auth): add JWT login"
             echo "  fix(validation): handle empty CSV"
-            echo "  devops(ci): add security scan"
+            echo "  chore(ci): add security scan"
             echo "  test(rules): add null check edge cases"
             exit 1
           fi
@@ -44,6 +44,6 @@ jobs:
             echo "Examples:"
             echo "  feature/validation-engine"
             echo "  fix/null-check-bug"
-            echo "  devops/add-ci-pipeline"
+            echo "  chore/add-ci-pipeline"
             exit 1
           fi
