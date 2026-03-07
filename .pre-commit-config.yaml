@@ -1,27 +1,20 @@
 repos:
-  # ----------------------------------------
-  # Universal hooks — run for EVERYONE
-  # ----------------------------------------
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
     hooks:
-      - id: trailing-whitespace      # all files
-      - id: end-of-file-fixer        # all files
-      - id: check-yaml               # all files
-      - id: check-json               # all files
-      - id: check-merge-conflict     # all files
-      - id: detect-private-key       # all files
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-merge-conflict
+      - id: detect-private-key
       - id: check-added-large-files
         args: ["--maxkb=500"]
 
-  # ----------------------------------------
-  # Backend 
-  # ----------------------------------------
   - repo: https://github.com/psf/black
     rev: 23.12.1
     hooks:
       - id: black
-        language_version: python3.11
         files: ^backend/
 
   - repo: https://github.com/PyCQA/flake8
@@ -38,31 +31,20 @@ repos:
         args: ["--settings-file=setup.cfg"]
         files: ^backend/
 
-  # ----------------------------------------
-  # Data Engineering 
-  # ----------------------------------------
   - repo: https://github.com/psf/black
     rev: 23.12.1
     hooks:
       - id: black
         name: black (data-engineering)
-        language_version: python3.11
         files: ^data-engineering/
 
-  # ----------------------------------------
-  # QA 
-  # ----------------------------------------
   - repo: https://github.com/psf/black
     rev: 23.12.1
     hooks:
       - id: black
         name: black (qa)
-        language_version: python3.11
         files: ^qa/
 
-  # ----------------------------------------
-  # Commit message
-  # ----------------------------------------
   - repo: https://github.com/compilerla/conventional-pre-commit
     rev: v3.4.0
     hooks:
