@@ -188,7 +188,7 @@ jobs:
           EOF
 
       - name: Start containers
-        run: docker-compose up -d --build
+        run: docker compose up -d --build
 
       - name: Wait for backend
         run: |
@@ -214,10 +214,10 @@ jobs:
         if: failure()
         run: |
           echo "=== BACKEND LOGS ==="
-          docker-compose logs backend
+          docker compose logs backend
           echo "=== DB LOGS ==="
-          docker-compose logs db
+          docker compose logs db
 
       - name: Teardown
         if: always()
-        run: docker-compose down -v
+        run: docker compose down -v
