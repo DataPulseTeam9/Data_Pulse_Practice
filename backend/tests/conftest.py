@@ -1,10 +1,8 @@
 """Test fixtures for pytest-django."""
 
-import io
-import json
 import pytest
-from rest_framework.test import APIClient
 from django.core.files.uploadedfile import SimpleUploadedFile
+from rest_framework.test import APIClient
 
 VALID_PASSWORD = "TestPass1!"
 
@@ -20,7 +18,11 @@ def sample_user(client):
     """Register a test user and return the response data."""
     resp = client.post(
         "/api/auth/register",
-        {"email": "test@example.com", "password": VALID_PASSWORD, "full_name": "Test User"},
+        {
+            "email": "test@example.com",
+            "password": VALID_PASSWORD,
+            "full_name": "Test User",
+        },
         format="json",
     )
     return resp.json()

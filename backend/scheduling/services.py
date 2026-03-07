@@ -1,11 +1,9 @@
 """Core check runner service — shared logic used by views and Celery tasks."""
 
-from django.utils import timezone
-
 from checks.models import CheckResult, QualityScore
-from checks.services.validation_engine import ValidationEngine
 from checks.services.scoring_service import calculate_quality_score
-from datasets.models import Dataset, DatasetFile
+from checks.services.validation_engine import ValidationEngine
+from datasets.models import DatasetFile
 from datasets.services.file_parser import parse_csv, parse_json
 from rules.models import ValidationRule
 from scheduling.models import AuditLog
@@ -39,6 +37,7 @@ def run_checks_for_dataset(dataset, user=None, action="CHECK_RUN"):
 
     # Fetch rules
     from django.db.models import Q
+
     rules = list(
         ValidationRule.objects.filter(is_active=True).filter(
             Q(dataset_type=dataset.file_type) | Q(dataset_type="") | Q(dataset_type__isnull=True)
@@ -53,8 +52,12 @@ def run_checks_for_dataset(dataset, user=None, action="CHECK_RUN"):
         dataset.save()
         _create_audit_log(user, action, dataset, 100.0, "No rules defined — perfect score")
         return {
-            "score": 100.0, "total_rules": 0, "passed_rules": 0,
-            "failed_rules": 0, "status": "VALIDATED", "quality_score_id": score_record.id,
+            "score": 100.0,
+            "total_rules": 0,
+            "passed_rules": 0,
+            "failed_rules": 0,
+            "status": "VALIDATED",
+            "quality_score_id": score_record.id,
         }
 
     # Run checks
@@ -94,8 +97,11 @@ def run_checks_for_dataset(dataset, user=None, action="CHECK_RUN"):
 
     # Audit
     _create_audit_log(
-        user, action, dataset, score_data["score"],
-        f"Score: {score_data['score']}% | Passed: {score_data['passed_rules']}/{score_data['total_rules']}"
+        user,
+        action,
+        dataset,
+        score_data["score"],
+        f"Score: {score_data['score']}% | Passed: {score_data['passed_rules']}/{score_data['total_rules']}",
     )
 
     return {

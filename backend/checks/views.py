@@ -1,18 +1,17 @@
 """Quality checks router - IMPLEMENTED."""
 
+from checks.models import CheckResult, QualityScore
+from checks.serializers import CheckResultResponseSerializer, QualityScoreResponseSerializer
+from checks.services.scoring_service import calculate_quality_score
+from checks.services.validation_engine import ValidationEngine
+from datapulse.exceptions import DatasetNotFoundException, QualityCheckFailedException
+from datasets.models import Dataset, DatasetFile
+from datasets.services.file_parser import parse_csv, parse_json
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from drf_spectacular.utils import extend_schema
-
-from checks.models import CheckResult, QualityScore
-from checks.serializers import CheckResultResponseSerializer, QualityScoreResponseSerializer
-from checks.services.validation_engine import ValidationEngine
-from checks.services.scoring_service import calculate_quality_score
-from datasets.models import Dataset, DatasetFile
-from datasets.services.file_parser import parse_csv, parse_json
 from rules.models import ValidationRule
-from datapulse.exceptions import DatasetNotFoundException, QualityCheckFailedException
 
 
 class RunChecksView(APIView):
@@ -64,6 +63,7 @@ class RunChecksView(APIView):
 
         # 4. Fetch active rules matching dataset type (or rules with blank/null dataset_type)
         from django.db.models import Q
+
         rules = list(
             ValidationRule.objects.filter(is_active=True).filter(
                 Q(dataset_type=dataset.file_type) | Q(dataset_type="") | Q(dataset_type__isnull=True)
@@ -73,7 +73,11 @@ class RunChecksView(APIView):
         if not rules:
             # No rules to run — mark as validated with perfect score
             score_record = QualityScore.objects.create(
-                dataset=dataset, score=100.0, total_rules=0, passed_rules=0, failed_rules=0
+                dataset=dataset,
+                score=100.0,
+                total_rules=0,
+                passed_rules=0,
+                failed_rules=0,
             )
             dataset.status = "VALIDATED"
             dataset.save()
@@ -144,12 +148,9 @@ class CheckResultsView(APIView):
             raise DatasetNotFoundException(f"Dataset with id {dataset_id} not found")
 
         results = (
-            CheckResult.objects.filter(dataset_id=dataset_id)
-            .select_related("dataset", "rule")
-            .order_by("-checked_at")
+            CheckResult.objects.filter(dataset_id=dataset_id).select_related("dataset", "rule").order_by("-checked_at")
         )
         return Response(
             CheckResultResponseSerializer(results, many=True).data,
             status=status.HTTP_200_OK,
         )
-

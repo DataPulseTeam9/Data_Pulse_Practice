@@ -1,17 +1,15 @@
 """Reports router - IMPLEMENTED."""
 
+from checks.models import QualityScore
+from checks.serializers import QualityScoreResponseSerializer
+from datapulse.exceptions import DatasetNotFoundException
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiParameter, extend_schema
+from reports.serializers import QualityReportSerializer
+from reports.services.report_service import generate_report, get_trend_data
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from drf_spectacular.utils import extend_schema, OpenApiParameter
-from drf_spectacular.types import OpenApiTypes
-
-from reports.serializers import QualityReportSerializer
-from checks.serializers import QualityScoreResponseSerializer
-from reports.services.report_service import generate_report, get_trend_data
-from datapulse.exceptions import DatasetNotFoundException
-
-from checks.models import QualityScore
 
 
 class DatasetReportView(APIView):
@@ -25,6 +23,7 @@ class DatasetReportView(APIView):
     def get(self, request, dataset_id):
         """Get a full quality report for a dataset."""
         from datasets.models import Dataset
+
         try:
             if getattr(request.user, "role", "USER") == "ADMIN":
                 Dataset.objects.get(id=dataset_id)
@@ -78,15 +77,16 @@ class DashboardView(APIView):
         if getattr(request.user, "role", "USER") == "ADMIN":
             dataset_ids = QualityScore.objects.values_list("dataset_id", flat=True).distinct()
         else:
-            dataset_ids = QualityScore.objects.filter(dataset__uploaded_by=request.user).values_list("dataset_id", flat=True).distinct()
+            dataset_ids = (
+                QualityScore.objects.filter(dataset__uploaded_by=request.user)
+                .values_list("dataset_id", flat=True)
+                .distinct()
+            )
 
         latest_scores = []
         for ds_id in dataset_ids:
             latest = (
-                QualityScore.objects.filter(dataset_id=ds_id)
-                .select_related("dataset")
-                .order_by("-checked_at")
-                .first()
+                QualityScore.objects.filter(dataset_id=ds_id).select_related("dataset").order_by("-checked_at").first()
             )
             if latest:
                 latest_scores.append(latest)
@@ -95,4 +95,3 @@ class DashboardView(APIView):
             QualityScoreResponseSerializer(latest_scores, many=True).data,
             status=status.HTTP_200_OK,
         )
-

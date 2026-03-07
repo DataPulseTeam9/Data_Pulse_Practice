@@ -2,9 +2,8 @@
 
 import logging
 
-from django.core.mail import send_mail
 from django.conf import settings
-
+from django.core.mail import send_mail
 from scheduling.models import AlertConfig
 
 logger = logging.getLogger(__name__)
@@ -29,11 +28,7 @@ def check_and_notify(dataset, score):
 
 def _send_alert_email(config, dataset, score):
     """Send an alert email for a quality score drop."""
-    recipients = [
-        email.strip()
-        for email in config.email_recipients.split(",")
-        if email.strip()
-    ]
+    recipients = [email.strip() for email in config.email_recipients.split(",") if email.strip()]
 
     if not recipients:
         logger.warning(f"Alert config {config.id} has no valid recipients.")

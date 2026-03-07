@@ -1,27 +1,28 @@
-## 📋 What does this PR do?
-
+## Description
 <!-- Describe your changes clearly -->
 
-## ✅ Type of change
-- [ ] `feat` — New feature
-- [ ] `fix` — Bug fix
-- [ ] `devops` — Docker, CI/CD, infrastructure
-- [ ] `test` — Tests only
-- [ ] `docs` — Documentation
-- [ ] `refactor` — Code cleanup
+## Type of Change
+- [ ] `feat` - New feature
+- [ ] `fix` - Bug fix
+- [ ] `devops` - Infrastructure/CI/CD
+- [ ] `test` - Tests only
+- [ ] `docs` - Documentation
+- [ ] `refactor` - Code cleanup
 
-## 🔗 Closes issue
-<!-- REQUIRED: link your task — this moves the card to Done automatically -->
+## Related Issue
+<!-- REQUIRED: Link your task -->
 Closes #
 
-## 🧪 Testing
-- [ ] Tests added / updated
-- [ ] All tests pass locally (`cd backend && pytest tests/ -v`)
-- [ ] Tested with `docker-compose up --build`
+## Testing
+- [ ] Tests added/updated
+- [ ] All tests pass locally
+- [ ] Tested with Docker Compose
+- [ ] Manual testing completed
 
-## ✔️ Checklist
-- [ ] Branch: `type/description`
-- [ ] PR title: `type(scope): description`
-- [ ] No `.env` or secrets committed
-- [ ] Pre-commit hooks passed locally
-- [ ] CI passes
+## Checklist
+- [ ] Branch follows `type/description` format
+- [ ] PR title follows `type(scope): description` format
+- [ ] No secrets or `.env` files committed
+- [ ] Pre-commit hooks passed
+- [ ] Documentation updated (if needed)
+- [ ] Ready for review

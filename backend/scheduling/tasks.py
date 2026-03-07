@@ -15,10 +15,11 @@ def run_scheduled_checks():
     This task is triggered by django-celery-beat at the configured interval.
     It processes all active ScheduleConfig entries whose frequency has elapsed.
     """
-    from scheduling.models import ScheduleConfig
-    from scheduling.services import run_checks_for_dataset
-    from scheduling.notifications import check_and_notify
     from datetime import timedelta
+
+    from scheduling.models import ScheduleConfig
+    from scheduling.notifications import check_and_notify
+    from scheduling.services import run_checks_for_dataset
 
     FREQUENCY_DELTAS = {
         "HOURLY": timedelta(hours=1),
@@ -53,7 +54,4 @@ def run_scheduled_checks():
         if "score" in result:
             check_and_notify(schedule.dataset, result["score"])
 
-        logger.info(
-            f"Scheduled check complete for {schedule.dataset.name}: "
-            f"score={result.get('score', 'N/A')}"
-        )
+        logger.info(f"Scheduled check complete for {schedule.dataset.name}: " f"score={result.get('score', 'N/A')}")

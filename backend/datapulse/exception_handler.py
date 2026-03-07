@@ -1,8 +1,8 @@
 """Custom DRF exception handler."""
 
-from rest_framework.views import exception_handler
-from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.response import Response
+from rest_framework.views import exception_handler
 
 
 def custom_exception_handler(exc, context):
@@ -35,7 +35,7 @@ def custom_exception_handler(exc, context):
         # Fallback for unexpected exceptions not handled by DRF (e.g., raw Python exceptions)
         return Response(
             {
-                "detail": str(exc) if hasattr(exc, "__str__") else "An unexpected error occurred.",
+                "detail": (str(exc) if hasattr(exc, "__str__") else "An unexpected error occurred."),
                 "code": "internal_error",
             },
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,

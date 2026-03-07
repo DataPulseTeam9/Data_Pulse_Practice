@@ -18,6 +18,5 @@ REST_FRAMEWORK["DEFAULT_RENDERER_CLASSES"] = (
 
 # Use human-readable coloring for structlog in dev
 import structlog
-LOGGING["formatters"]["structlog_formatter"]["processors"].append(
-    structlog.dev.ConsoleRenderer()
-)
+
+LOGGING["formatters"]["structlog_formatter"]["processors"].append(structlog.dev.ConsoleRenderer())

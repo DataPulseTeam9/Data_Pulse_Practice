@@ -15,13 +15,9 @@ class AuditLog(models.Model):
         ("RULE_DELETED", "Rule Deleted"),
     ]
 
-    user = models.ForeignKey(
-        "authentication.User", on_delete=models.SET_NULL, null=True, blank=True
-    )
+    user = models.ForeignKey("authentication.User", on_delete=models.SET_NULL, null=True, blank=True)
     action = models.CharField(max_length=20, choices=ACTION_CHOICES)
-    dataset = models.ForeignKey(
-        "datasets.Dataset", on_delete=models.SET_NULL, null=True, blank=True
-    )
+    dataset = models.ForeignKey("datasets.Dataset", on_delete=models.SET_NULL, null=True, blank=True)
     details = models.TextField(null=True, blank=True)
     score = models.FloatField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -38,16 +34,17 @@ class AlertConfig(models.Model):
     """Configuration for quality score alerts."""
 
     dataset = models.ForeignKey(
-        "datasets.Dataset", on_delete=models.CASCADE, null=True, blank=True,
-        help_text="If null, applies to all datasets as the global default."
+        "datasets.Dataset",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        help_text="If null, applies to all datasets as the global default.",
     )
     threshold = models.FloatField(
         default=70.0,
-        help_text="Alert when quality score drops below this value (0-100)."
+        help_text="Alert when quality score drops below this value (0-100).",
     )
-    email_recipients = models.TextField(
-        help_text="Comma-separated list of email addresses to notify."
-    )
+    email_recipients = models.TextField(help_text="Comma-separated list of email addresses to notify.")
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -71,8 +68,9 @@ class ScheduleConfig(models.Model):
     ]
 
     dataset = models.ForeignKey(
-        "datasets.Dataset", on_delete=models.CASCADE,
-        help_text="Dataset to run scheduled checks on."
+        "datasets.Dataset",
+        on_delete=models.CASCADE,
+        help_text="Dataset to run scheduled checks on.",
     )
     frequency = models.CharField(max_length=10, choices=FREQUENCY_CHOICES, default="DAILY")
     is_active = models.BooleanField(default=True)

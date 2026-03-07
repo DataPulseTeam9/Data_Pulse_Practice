@@ -1,15 +1,14 @@
 """Authentication router - IMPLEMENTED."""
 
+from authentication.serializers import LoginSerializer, TokenSerializer, UserCreateSerializer
+from authentication.services import authenticate_user, create_user
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-from rest_framework.views import APIView
 from rest_framework.throttling import AnonRateThrottle
+from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import AccessToken
-from drf_spectacular.utils import extend_schema
-
-from authentication.serializers import UserCreateSerializer, LoginSerializer, TokenSerializer
-from authentication.services import create_user, authenticate_user
 
 
 class RegisterView(APIView):

@@ -9,7 +9,11 @@ VALID_PASSWORD = "TestPass1!"
 def test_register_success(client):
     resp = client.post(
         "/api/auth/register",
-        {"email": "new@example.com", "password": VALID_PASSWORD, "full_name": "New User"},
+        {
+            "email": "new@example.com",
+            "password": VALID_PASSWORD,
+            "full_name": "New User",
+        },
         format="json",
     )
     assert resp.status_code == 201
@@ -47,7 +51,11 @@ def test_register_duplicate_email(client):
 def test_login_success(client):
     client.post(
         "/api/auth/register",
-        {"email": "login@example.com", "password": VALID_PASSWORD, "full_name": "Login User"},
+        {
+            "email": "login@example.com",
+            "password": VALID_PASSWORD,
+            "full_name": "Login User",
+        },
         format="json",
     )
     resp = client.post(
@@ -63,7 +71,11 @@ def test_login_success(client):
 def test_login_wrong_password(client):
     client.post(
         "/api/auth/register",
-        {"email": "wrong@example.com", "password": VALID_PASSWORD, "full_name": "Wrong User"},
+        {
+            "email": "wrong@example.com",
+            "password": VALID_PASSWORD,
+            "full_name": "Wrong User",
+        },
         format="json",
     )
     resp = client.post(

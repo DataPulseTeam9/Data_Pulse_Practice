@@ -1,31 +1,29 @@
 """Views for scheduling, notifications, batch processing, and audit log."""
 
+from datapulse.exceptions import DatasetNotFoundException
+from datasets.models import Dataset
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from drf_spectacular.utils import extend_schema, OpenApiParameter
-from drf_spectacular.types import OpenApiTypes
-
-from datasets.models import Dataset
-from datapulse.exceptions import DatasetNotFoundException
-
-from scheduling.models import AuditLog, AlertConfig, ScheduleConfig
+from scheduling.models import AlertConfig, AuditLog, ScheduleConfig
+from scheduling.notifications import check_and_notify
 from scheduling.serializers import (
-    AuditLogSerializer,
     AlertConfigCreateSerializer,
     AlertConfigResponseSerializer,
     AlertConfigUpdateSerializer,
+    AuditLogSerializer,
+    BatchCheckRequestSerializer,
+    BatchCheckResultSerializer,
     ScheduleConfigCreateSerializer,
     ScheduleConfigResponseSerializer,
     ScheduleConfigUpdateSerializer,
-    BatchCheckRequestSerializer,
-    BatchCheckResultSerializer,
 )
 from scheduling.services import run_checks_for_dataset
-from scheduling.notifications import check_and_notify
-
 
 # ---------- Batch Processing ----------
+
 
 class BatchCheckView(APIView):
     """Run quality checks on multiple datasets at once."""
@@ -49,39 +47,45 @@ class BatchCheckView(APIView):
             datasets = Dataset.objects.filter(id__in=dataset_ids)
         else:
             datasets = Dataset.objects.filter(id__in=dataset_ids, uploaded_by=request.user)
-            
+
         dataset_map = {ds.id: ds for ds in datasets}
 
         for ds_id in dataset_ids:
             dataset = dataset_map.get(ds_id)
             if not dataset:
-                results.append({
-                    "dataset_id": ds_id,
-                    "dataset_name": "Unknown",
-                    "score": 0.0,
-                    "status": "ERROR",
-                    "detail": f"Dataset {ds_id} not found or access denied",
-                })
+                results.append(
+                    {
+                        "dataset_id": ds_id,
+                        "dataset_name": "Unknown",
+                        "score": 0.0,
+                        "status": "ERROR",
+                        "detail": f"Dataset {ds_id} not found or access denied",
+                    }
+                )
                 continue
 
             result = run_checks_for_dataset(dataset, user=user, action="BATCH_RUN")
 
             if "error" in result:
-                results.append({
-                    "dataset_id": ds_id,
-                    "dataset_name": dataset.name,
-                    "score": 0.0,
-                    "status": "ERROR",
-                    "detail": result["error"],
-                })
+                results.append(
+                    {
+                        "dataset_id": ds_id,
+                        "dataset_name": dataset.name,
+                        "score": 0.0,
+                        "status": "ERROR",
+                        "detail": result["error"],
+                    }
+                )
             else:
-                results.append({
-                    "dataset_id": ds_id,
-                    "dataset_name": dataset.name,
-                    "score": result["score"],
-                    "status": result["status"],
-                    "detail": None,
-                })
+                results.append(
+                    {
+                        "dataset_id": ds_id,
+                        "dataset_name": dataset.name,
+                        "score": result["score"],
+                        "status": result["status"],
+                        "detail": None,
+                    }
+                )
                 # Check and notify on each result
                 check_and_notify(dataset, result["score"])
 
@@ -92,6 +96,7 @@ class BatchCheckView(APIView):
 
 
 # ---------- Audit Log ----------
+
 
 class AuditLogListView(APIView):
     """View audit log entries."""
@@ -132,6 +137,7 @@ class AuditLogListView(APIView):
 
 # ---------- Alert Config ----------
 
+
 class AlertConfigListCreateView(APIView):
     """CRUD for alert configurations."""
 
@@ -146,9 +152,10 @@ class AlertConfigListCreateView(APIView):
             configs = AlertConfig.objects.select_related("dataset").filter(is_active=True)
         else:
             from django.db.models import Q
+
             configs = AlertConfig.objects.select_related("dataset").filter(
                 Q(dataset__isnull=True) | Q(dataset__uploaded_by=request.user),
-                is_active=True
+                is_active=True,
             )
         return Response(
             AlertConfigResponseSerializer(configs, many=True).data,
@@ -179,6 +186,7 @@ class AlertConfigListCreateView(APIView):
         elif getattr(request.user, "role", "USER") != "ADMIN":
             # Only ADMIN can create global alerts
             from rest_framework.exceptions import PermissionDenied
+
             raise PermissionDenied("Only administrators can create global alert configurations.")
 
         config = AlertConfig.objects.create(
@@ -209,12 +217,14 @@ class AlertConfigDetailView(APIView):
                 config = AlertConfig.objects.get(id=config_id)
             else:
                 from django.db.models import Q
+
                 config = AlertConfig.objects.get(
                     Q(id=config_id),
-                    Q(dataset__isnull=True, is_active=True) | Q(dataset__uploaded_by=request.user)
+                    Q(dataset__isnull=True, is_active=True) | Q(dataset__uploaded_by=request.user),
                 )
                 if config.dataset is None:
                     from rest_framework.exceptions import PermissionDenied
+
                     raise PermissionDenied("Cannot modify global alert configurations.")
         except AlertConfig.DoesNotExist:
             return Response(
@@ -246,12 +256,14 @@ class AlertConfigDetailView(APIView):
                 config = AlertConfig.objects.get(id=config_id)
             else:
                 from django.db.models import Q
+
                 config = AlertConfig.objects.get(
                     Q(id=config_id),
-                    Q(dataset__isnull=True, is_active=True) | Q(dataset__uploaded_by=request.user)
+                    Q(dataset__isnull=True, is_active=True) | Q(dataset__uploaded_by=request.user),
                 )
                 if config.dataset is None:
                     from rest_framework.exceptions import PermissionDenied
+
                     raise PermissionDenied("Cannot delete global alert configurations.")
         except AlertConfig.DoesNotExist:
             return Response(
@@ -263,6 +275,7 @@ class AlertConfigDetailView(APIView):
 
 
 # ---------- Schedule Config ----------
+
 
 class ScheduleConfigListCreateView(APIView):
     """CRUD for schedule configurations."""
@@ -278,7 +291,7 @@ class ScheduleConfigListCreateView(APIView):
             configs = ScheduleConfig.objects.select_related("dataset").all()
         else:
             configs = ScheduleConfig.objects.select_related("dataset").filter(dataset__uploaded_by=request.user)
-            
+
         return Response(
             ScheduleConfigResponseSerializer(configs, many=True).data,
             status=status.HTTP_200_OK,
@@ -330,7 +343,9 @@ class ScheduleConfigDetailView(APIView):
             if getattr(request.user, "role", "USER") == "ADMIN":
                 config = ScheduleConfig.objects.select_related("dataset").get(id=config_id)
             else:
-                config = ScheduleConfig.objects.select_related("dataset").get(id=config_id, dataset__uploaded_by=request.user)
+                config = ScheduleConfig.objects.select_related("dataset").get(
+                    id=config_id, dataset__uploaded_by=request.user
+                )
         except ScheduleConfig.DoesNotExist:
             return Response(
                 {"detail": f"Schedule config {config_id} not found"},

@@ -11,6 +11,13 @@ repos:
       - id: check-added-large-files
         args: ["--maxkb=500"]
 
+  - repo: https://github.com/PyCQA/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        args: ["--settings-file=setup.cfg"]
+        files: ^backend/
+
   - repo: https://github.com/psf/black
     rev: 23.12.1
     hooks:
@@ -22,13 +29,6 @@ repos:
     hooks:
       - id: flake8
         args: ["--config=setup.cfg"]
-        files: ^backend/
-
-  - repo: https://github.com/PyCQA/isort
-    rev: 5.13.2
-    hooks:
-      - id: isort
-        args: ["--settings-file=setup.cfg"]
         files: ^backend/
 
   - repo: https://github.com/psf/black

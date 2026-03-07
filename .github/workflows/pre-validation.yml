@@ -1,4 +1,4 @@
-name:  PR Validation
+name: PR Validation
 
 on:
   pull_request:
@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   validate:
-    name:  Validate PR
+    name: Validate PR
     runs-on: ubuntu-latest
     steps:
       - name: Check PR title format
@@ -18,9 +18,9 @@ jobs:
           TITLE="${{ github.event.pull_request.title }}"
           echo "PR Title: $TITLE"
           if echo "$TITLE" | grep -qE "^(feat|fix|docs|test|devops|chore|refactor|ci)(\(.+\))?: .+"; then
-            echo " PR title valid"
+            echo "✓ PR title is valid"
           else
-            echo " Invalid PR title: $TITLE"
+            echo "✗ Invalid PR title: $TITLE"
             echo "Must follow: type(scope): description"
             echo "Examples:"
             echo "  feat(auth): add JWT login"
@@ -34,15 +34,15 @@ jobs:
           BRANCH="${{ github.head_ref }}"
           echo "Branch: $BRANCH"
           if echo "$BRANCH" | grep -qE "^(feature|fix|hotfix|devops|docs|test|chore)/.+"; then
-            echo " Branch name valid"
+            echo "✓ Branch name is valid"
           else
-            echo " Invalid branch: $BRANCH"
+            echo "✗ Invalid branch: $BRANCH"
             echo "Must follow: type/description"
             echo "Examples: feature/auth-system, fix/null-check, devops/ci-pipeline"
             exit 1
           fi
 
-      - name: Check PR links to an issue
+      - name: Check PR links to issue
         uses: actions/github-script@v7
         with:
           script: |
@@ -50,8 +50,7 @@ jobs:
             const hasIssueRef = /closes?\s*#\d+|fixes?\s*#\d+|resolves?\s*#\d+|task:\s*#\d+/i.test(body);
 
             if (hasIssueRef) {
-              console.log(' PR references an issue');
+              console.log('✓ PR references an issue');
             } else {
-              console.log(' PR does not reference an issue — please link your task');
-              // Warning only, not blocking
+              console.log('⚠ PR does not reference an issue - please link your task');
             }

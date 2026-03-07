@@ -2,10 +2,9 @@
 
 from datetime import timedelta
 
-from django.utils import timezone
-
 from checks.models import CheckResult, QualityScore
 from datasets.models import Dataset
+from django.utils import timezone
 
 
 def generate_report(dataset_id: int) -> dict:
@@ -20,9 +19,7 @@ def generate_report(dataset_id: int) -> dict:
         return None
 
     # Get the latest quality score
-    latest_score = (
-        QualityScore.objects.filter(dataset=dataset).order_by("-checked_at").first()
-    )
+    latest_score = QualityScore.objects.filter(dataset=dataset).order_by("-checked_at").first()
 
     if not latest_score:
         return {
@@ -36,7 +33,10 @@ def generate_report(dataset_id: int) -> dict:
 
     # Fetch check results from the latest run (same checked_at timestamp window)
     results = (
-        CheckResult.objects.filter(dataset=dataset, checked_at__gte=latest_score.checked_at - timedelta(seconds=5))
+        CheckResult.objects.filter(
+            dataset=dataset,
+            checked_at__gte=latest_score.checked_at - timedelta(seconds=5),
+        )
         .select_related("dataset", "rule")
         .order_by("-checked_at")
     )
@@ -59,13 +59,9 @@ def get_trend_data(days: int = 30, user=None) -> list:
     """
     start_date = timezone.now() - timedelta(days=days)
     queryset = QualityScore.objects.filter(checked_at__gte=start_date)
-    
+
     if user and getattr(user, "role", "USER") != "ADMIN":
         queryset = queryset.filter(dataset__uploaded_by=user)
-        
-    scores = (
-        queryset.select_related("dataset")
-        .order_by("checked_at")
-    )
-    return scores
 
+    scores = queryset.select_related("dataset").order_by("checked_at")
+    return scores

@@ -23,10 +23,13 @@ def test_upload_csv_success(auth_client):
 def test_upload_json_success(auth_client):
     """Test uploading a valid JSON file."""
     import json
-    json_data = json.dumps([
-        {"id": 1, "name": "Alice"},
-        {"id": 2, "name": "Bob"},
-    ]).encode()
+
+    json_data = json.dumps(
+        [
+            {"id": 1, "name": "Alice"},
+            {"id": 2, "name": "Bob"},
+        ]
+    ).encode()
     uploaded = SimpleUploadedFile("test.json", json_data, content_type="application/json")
     resp = auth_client.post("/api/datasets/upload", {"file": uploaded}, format="multipart")
     assert resp.status_code == 201
@@ -78,12 +81,11 @@ def test_upload_large_file(auth_client):
     header = b"id,name,value\n"
     row = b"1,TestName,123456789\n"
     content = header + (row * 500000)
-    
+
     uploaded = SimpleUploadedFile("large.csv", content, content_type="text/csv")
     resp = auth_client.post("/api/datasets/upload", {"file": uploaded}, format="multipart")
-    
+
     assert resp.status_code == 201
     data = resp.json()
     assert data["row_count"] == 500000
     assert data["file_type"] == "csv"
-

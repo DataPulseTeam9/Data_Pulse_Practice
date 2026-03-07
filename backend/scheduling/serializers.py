@@ -2,8 +2,8 @@
 
 from rest_framework import serializers
 
-
 # --- Audit Log ---
+
 
 class AuditLogSerializer(serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
@@ -18,6 +18,7 @@ class AuditLogSerializer(serializers.Serializer):
 
 
 # --- Alert Config ---
+
 
 class AlertConfigCreateSerializer(serializers.Serializer):
     dataset_id = serializers.IntegerField(required=False, allow_null=True)
@@ -44,11 +45,10 @@ class AlertConfigUpdateSerializer(serializers.Serializer):
 
 # --- Schedule Config ---
 
+
 class ScheduleConfigCreateSerializer(serializers.Serializer):
     dataset_id = serializers.IntegerField()
-    frequency = serializers.ChoiceField(
-        choices=["HOURLY", "DAILY", "WEEKLY", "MONTHLY"], default="DAILY"
-    )
+    frequency = serializers.ChoiceField(choices=["HOURLY", "DAILY", "WEEKLY", "MONTHLY"], default="DAILY")
     is_active = serializers.BooleanField(default=True)
 
 
@@ -64,18 +64,18 @@ class ScheduleConfigResponseSerializer(serializers.Serializer):
 
 
 class ScheduleConfigUpdateSerializer(serializers.Serializer):
-    frequency = serializers.ChoiceField(
-        choices=["HOURLY", "DAILY", "WEEKLY", "MONTHLY"], required=False
-    )
+    frequency = serializers.ChoiceField(choices=["HOURLY", "DAILY", "WEEKLY", "MONTHLY"], required=False)
     is_active = serializers.BooleanField(required=False)
 
 
 # --- Batch Processing ---
 
+
 class BatchCheckRequestSerializer(serializers.Serializer):
     dataset_ids = serializers.ListField(
-        child=serializers.IntegerField(), min_length=1,
-        help_text="List of dataset IDs to run checks on."
+        child=serializers.IntegerField(),
+        min_length=1,
+        help_text="List of dataset IDs to run checks on.",
     )
 
 

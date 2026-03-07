@@ -1,29 +1,37 @@
 ---
-name:  Bug Report
-about: Something is broken
-title: "[BUG] short description"
+name: Bug Report
+about: Report a defect or issue
+title: "[BUG] Brief description"
 labels: "type: bug"
 assignees: ""
 ---
 
-##  What happened?
+## Description
 Clear description of the bug.
 
-##  Steps to reproduce
+## Steps to Reproduce
 1. Go to...
-2. Call endpoint...
-3. See error...
+2. Execute...
+3. Observe...
 
-##  Expected behaviour
-What should have happened.
+## Expected Behavior
+What should happen.
 
-##  Actual behaviour
-What actually happened.
+## Actual Behavior
+What actually happens.
 
-##  Severity
-- [ ]  Critical — blocks the demo
-- [ ]  Medium — affects functionality
-- [ ]  Low — minor issue
+## Severity
+- [ ] Critical - Blocks release/demo
+- [ ] High - Major functionality broken
+- [ ] Medium - Feature partially broken
+- [ ] Low - Minor issue or cosmetic
 
-## 📎 Logs / Screenshots
-Paste any error logs here.
+## Environment
+- OS: [e.g., Ubuntu 22.04, Windows 11]
+- Browser: [if applicable]
+- Version/Commit: [e.g., main@abc123]
+
+## Logs/Screenshots
+```
+Paste error logs or stack traces here
+```

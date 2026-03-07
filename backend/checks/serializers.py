@@ -1,7 +1,7 @@
 """Check result serializers."""
 
-from rest_framework import serializers
 from checks.models import CheckResult, QualityScore
+from rest_framework import serializers
 
 
 class CheckResultResponseSerializer(serializers.ModelSerializer):
@@ -11,8 +11,14 @@ class CheckResultResponseSerializer(serializers.ModelSerializer):
     class Meta:
         model = CheckResult
         fields = [
-            "id", "dataset_id", "rule_id", "passed", 
-            "failed_rows", "total_rows", "details", "checked_at"
+            "id",
+            "dataset_id",
+            "rule_id",
+            "passed",
+            "failed_rows",
+            "total_rows",
+            "details",
+            "checked_at",
         ]
 
 
@@ -22,6 +28,11 @@ class QualityScoreResponseSerializer(serializers.ModelSerializer):
     class Meta:
         model = QualityScore
         fields = [
-            "id", "dataset_id", "score", "total_rules", 
-            "passed_rules", "failed_rules", "checked_at"
+            "id",
+            "dataset_id",
+            "score",
+            "total_rules",
+            "passed_rules",
+            "failed_rules",
+            "checked_at",
         ]

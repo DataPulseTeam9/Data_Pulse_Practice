@@ -3,6 +3,7 @@
 import os
 from datetime import timedelta
 from pathlib import Path
+
 import environ
 
 # Initialize environment
@@ -77,24 +78,16 @@ STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 # --- Database ---
-DATABASES = {
-    "default": env.db("DATABASE_URL", default=f"sqlite:///{BASE_DIR}/db.sqlite3")
-}
+DATABASES = {"default": env.db("DATABASE_URL", default=f"sqlite:///{BASE_DIR}/db.sqlite3")}
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_USER_MODEL = "authentication.User"
 
 # --- Django REST Framework ---
 REST_FRAMEWORK = {
-    "DEFAULT_RENDERER_CLASSES": (
-        "rest_framework.renderers.JSONRenderer",
-    ),
-    "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
-    ),
-    "DEFAULT_PERMISSION_CLASSES": (
-        "rest_framework.permissions.IsAuthenticated",
-    ),
+    "DEFAULT_RENDERER_CLASSES": ("rest_framework.renderers.JSONRenderer",),
+    "DEFAULT_AUTHENTICATION_CLASSES": ("rest_framework_simplejwt.authentication.JWTAuthentication",),
+    "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
     "EXCEPTION_HANDLER": "datapulse.exception_handler.custom_exception_handler",
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "UNAUTHENTICATED_USER": None,
@@ -177,7 +170,7 @@ LOGGING = {
     "formatters": {
         "standard": {
             "format": "[%(asctime)s] %(levelname)s [%(name)s:%(lineno)s] %(message)s",
-            "datefmt": "%d/%b/%Y %H:%M:%S"
+            "datefmt": "%d/%b/%Y %H:%M:%S",
         },
         "structlog_formatter": {
             "()": structlog.stdlib.ProcessorFormatter,
@@ -198,11 +191,27 @@ LOGGING = {
         },
     },
     "loggers": {
-        "django": {"handlers": ["standard_console"], "level": "INFO", "propagate": False},
-        "django.request": {"handlers": ["standard_console"], "level": "ERROR", "propagate": False},
-        "django.server": {"handlers": ["standard_console"], "level": "INFO", "propagate": False},
+        "django": {
+            "handlers": ["standard_console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "django.request": {
+            "handlers": ["standard_console"],
+            "level": "ERROR",
+            "propagate": False,
+        },
+        "django.server": {
+            "handlers": ["standard_console"],
+            "level": "INFO",
+            "propagate": False,
+        },
         # Route all custom app logs through structlog
-        "authentication": {"handlers": ["console"], "level": "INFO", "propagate": False},
+        "authentication": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
         "datasets": {"handlers": ["console"], "level": "INFO", "propagate": False},
         "rules": {"handlers": ["console"], "level": "INFO", "propagate": False},
         "checks": {"handlers": ["console"], "level": "INFO", "propagate": False},
@@ -212,7 +221,8 @@ LOGGING = {
 }
 
 structlog.configure(
-    processors=STRUCTLOG_PROCESSORS + [
+    processors=STRUCTLOG_PROCESSORS
+    + [
         structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
     ],
     logger_factory=structlog.stdlib.LoggerFactory(),

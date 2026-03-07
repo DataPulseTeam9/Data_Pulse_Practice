@@ -1,19 +1,16 @@
 """Upload API tests - 3 tests."""
 
 import os
+
 import requests
-import pytest
 
 BASE_URL = os.getenv("API_URL", "http://localhost:8000")
 
 
 def test_upload_valid_csv():
     """Upload a valid CSV file - expect 201."""
-    csv = "id,name,age
-1,Alice,30
-2,Bob,25
-"
-    files = {"file": ("test.csv", csv.encode(), "text/csv")}
+    csv_content = "id,name,age\n1,Alice,30\n2,Bob,25\n"
+    files = {"file": ("test.csv", csv_content.encode(), "text/csv")}
     resp = requests.post(f"{BASE_URL}/api/datasets/upload", files=files)
     assert resp.status_code == 201
     data = resp.json()

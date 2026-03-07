@@ -5,7 +5,6 @@ Register → Upload CSV → Create rules → Run checks → Get report → View 
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 
-
 VALID_PASSWORD = "IntegTest1!"
 
 
@@ -16,7 +15,11 @@ def test_full_e2e_flow(client):
     # 1. Register
     reg_resp = client.post(
         "/api/auth/register",
-        {"email": "e2e@example.com", "password": VALID_PASSWORD, "full_name": "E2E User"},
+        {
+            "email": "e2e@example.com",
+            "password": VALID_PASSWORD,
+            "full_name": "E2E User",
+        },
         format="json",
     )
     assert reg_resp.status_code == 201
@@ -120,11 +123,15 @@ def test_full_e2e_flow(client):
 @pytest.mark.django_db
 def test_full_e2e_flow_json(client):
     """End-to-end for JSON dataset: register → upload → rules → checks → report."""
-    
+
     # 1. Register & Auth
     reg_resp = client.post(
         "/api/auth/register",
-        {"email": "e2e_json@example.com", "password": VALID_PASSWORD, "full_name": "E2E Json User"},
+        {
+            "email": "e2e_json@example.com",
+            "password": VALID_PASSWORD,
+            "full_name": "E2E Json User",
+        },
         format="json",
     )
     assert reg_resp.status_code == 201
@@ -133,13 +140,21 @@ def test_full_e2e_flow_json(client):
 
     # 2. Upload JSON
     import json
-    json_content = json.dumps([
-        {"id": 1, "product": "Apple", "price": 1.20, "code": "A123"},
-        {"id": 2, "product": "Banana", "price": 0.80, "code": "B456"},
-        {"id": 3, "product": None, "price": 1500.00, "code": "invalid-code"},
-        {"id": 4, "product": "Orange", "price": 0.90, "code": "A123"}, # Duplicate code
-    ]).encode()
-    
+
+    json_content = json.dumps(
+        [
+            {"id": 1, "product": "Apple", "price": 1.20, "code": "A123"},
+            {"id": 2, "product": "Banana", "price": 0.80, "code": "B456"},
+            {"id": 3, "product": None, "price": 1500.00, "code": "invalid-code"},
+            {
+                "id": 4,
+                "product": "Orange",
+                "price": 0.90,
+                "code": "A123",
+            },  # Duplicate code
+        ]
+    ).encode()
+
     uploaded = SimpleUploadedFile("data.json", json_content, content_type="application/json")
     upload_resp = client.post("/api/datasets/upload", {"file": uploaded}, format="multipart")
     assert upload_resp.status_code == 201
@@ -147,10 +162,36 @@ def test_full_e2e_flow_json(client):
 
     # 3. Create Rules
     rules_to_create = [
-        {"name": "Product not null", "rule_type": "NOT_NULL", "field_name": "product", "dataset_type": "json", "severity": "HIGH"},
-        {"name": "Price range", "rule_type": "RANGE", "field_name": "price", "dataset_type": "json", "parameters": '{"min": 0, "max": 100}', "severity": "MEDIUM"},
-        {"name": "Code Unique", "rule_type": "UNIQUE", "field_name": "code", "dataset_type": "json", "severity": "HIGH"},
-        {"name": "Code Regex", "rule_type": "REGEX", "field_name": "code", "dataset_type": "json", "parameters": '{"pattern": "^[A-Z][0-9]{3}$"}', "severity": "LOW"},
+        {
+            "name": "Product not null",
+            "rule_type": "NOT_NULL",
+            "field_name": "product",
+            "dataset_type": "json",
+            "severity": "HIGH",
+        },
+        {
+            "name": "Price range",
+            "rule_type": "RANGE",
+            "field_name": "price",
+            "dataset_type": "json",
+            "parameters": '{"min": 0, "max": 100}',
+            "severity": "MEDIUM",
+        },
+        {
+            "name": "Code Unique",
+            "rule_type": "UNIQUE",
+            "field_name": "code",
+            "dataset_type": "json",
+            "severity": "HIGH",
+        },
+        {
+            "name": "Code Regex",
+            "rule_type": "REGEX",
+            "field_name": "code",
+            "dataset_type": "json",
+            "parameters": '{"pattern": "^[A-Z][0-9]{3}$"}',
+            "severity": "LOW",
+        },
     ]
     for rule_data in rules_to_create:
         resp = client.post("/api/rules/", rule_data, format="json")
@@ -161,8 +202,8 @@ def test_full_e2e_flow_json(client):
     assert check_resp.status_code == 200
     score_data = check_resp.json()
     assert score_data["total_rules"] == 4
-    
-    # We expect failures: 
+
+    # We expect failures:
     # - null product (row 3)
     # - price > 100 (row 3)
     # - duplicate code (row 1 & 4)
@@ -174,10 +215,14 @@ def test_full_e2e_flow_json(client):
 def test_regex_escaping_behavior(client):
     """Test how the API handles escaped vs unescaped regex patterns."""
     import json
-    
+
     reg_resp = client.post(
         "/api/auth/register",
-        {"email": "regex@example.com", "password": VALID_PASSWORD, "full_name": "Regex User"},
+        {
+            "email": "regex@example.com",
+            "password": VALID_PASSWORD,
+            "full_name": "Regex User",
+        },
         format="json",
     )
     token = reg_resp.json()["access_token"]
@@ -186,8 +231,8 @@ def test_regex_escaping_behavior(client):
     # CSV with SSN Data
     csv_content = (
         b"id,ssn\n"
-        b"1,123-45-6789\n" # Valid format
-        b"2,123456789\n"   # Invalid format
+        b"1,123-45-6789\n"  # Valid format
+        b"2,123456789\n"  # Invalid format
     )
     uploaded = SimpleUploadedFile("ssn.csv", csv_content, content_type="text/csv")
     upload_resp = client.post("/api/datasets/upload", {"file": uploaded}, format="multipart")
@@ -196,48 +241,56 @@ def test_regex_escaping_behavior(client):
     # Test 1: Properly escaped JSON string for Regex \d
     # We want the JSON string to contain `\\d`, meaning we must pass a string that parses back to `\\d` in Python.
     escaped_pattern = json.dumps({"pattern": "^\\d{3}-\\d{2}-\\d{4}$"})
-    
+
     # Test 2: Unescaped \d within JSON string (invalid JSON payload)
     # If a user just sends `{"pattern": "^\d..."}`, the JSON parser fails.
-    unescaped_pattern = '{"pattern": "^\\d{3}-\\d{2}-\\d{4}$"}' # Python literal equivalent of receiving \d
+    unescaped_pattern = '{"pattern": "^\\d{3}-\\d{2}-\\d{4}$"}'  # Python literal equivalent of receiving \d
 
     # Rule 1
-    resp1 = client.post("/api/rules/", {
-        "name": "Escaped SSN", 
-        "rule_type": "REGEX", 
-        "field_name": "ssn", 
-        "dataset_type": "csv", 
-        "severity": "HIGH",
-        "parameters": escaped_pattern
-    }, format="json")
+    resp1 = client.post(
+        "/api/rules/",
+        {
+            "name": "Escaped SSN",
+            "rule_type": "REGEX",
+            "field_name": "ssn",
+            "dataset_type": "csv",
+            "severity": "HIGH",
+            "parameters": escaped_pattern,
+        },
+        format="json",
+    )
     assert resp1.status_code == 201
     rule1_id = resp1.json()["id"]
 
     # Rule 2
-    resp2 = client.post("/api/rules/", {
-        "name": "Unescaped SSN", 
-        "rule_type": "REGEX", 
-        "field_name": "ssn", 
-        "dataset_type": "csv", 
-        "severity": "HIGH",
-        "parameters": unescaped_pattern
-    }, format="json")
+    resp2 = client.post(
+        "/api/rules/",
+        {
+            "name": "Unescaped SSN",
+            "rule_type": "REGEX",
+            "field_name": "ssn",
+            "dataset_type": "csv",
+            "severity": "HIGH",
+            "parameters": unescaped_pattern,
+        },
+        format="json",
+    )
     assert resp2.status_code == 201
     rule2_id = resp2.json()["id"]
-    
+
     # Run Checks
     client.post(f"/api/checks/run/{dataset_id}")
-    
+
     # Fetch results
     results_resp = client.get(f"/api/checks/results/{dataset_id}")
     results = results_resp.json()
-    
+
     escaped_result = next(r for r in results if r["rule_id"] == rule1_id)
     unescaped_result = next(r for r in results if r["rule_id"] == rule2_id)
-    
+
     # Escaped pattern works perfectly: catches the bad row (1 failure)
     assert escaped_result["passed"] is False
-    assert escaped_result["failed_rows"] == 1 
+    assert escaped_result["failed_rows"] == 1
     assert escaped_result["total_rows"] == 2
 
     # Unescaped pattern behavior:

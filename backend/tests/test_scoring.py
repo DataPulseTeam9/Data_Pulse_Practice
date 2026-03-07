@@ -1,6 +1,5 @@
 """Unit tests for scoring_service — weighted quality score calculation."""
 
-import pytest
 from checks.services.scoring_service import calculate_quality_score
 
 

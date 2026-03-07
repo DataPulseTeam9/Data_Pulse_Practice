@@ -1,21 +1,19 @@
 """Dataset upload router - IMPLEMENTED."""
 
-import os
 import json
+import os
 import uuid
 
+from datapulse.exceptions import InvalidFileException
+from datasets.models import Dataset, DatasetFile
+from datasets.serializers import DatasetListSerializer, DatasetResponseSerializer
+from datasets.services.file_parser import parse_csv, parse_json
 from django.conf import settings
-from rest_framework import status
-from rest_framework.parsers import MultiPartParser, FormParser
+from drf_spectacular.utils import extend_schema
+from rest_framework import generics, status
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from drf_spectacular.utils import extend_schema, OpenApiParameter
-from drf_spectacular.types import OpenApiTypes
-
-from datasets.models import Dataset, DatasetFile
-from datasets.serializers import DatasetResponseSerializer, DatasetListSerializer
-from datasets.services.file_parser import parse_csv, parse_json
-from datapulse.exceptions import InvalidFileException
 
 
 class DatasetUploadView(APIView):
@@ -24,7 +22,12 @@ class DatasetUploadView(APIView):
     parser_classes = [MultiPartParser, FormParser]
 
     @extend_schema(
-        request={"multipart/form-data": {"type": "object", "properties": {"file": {"type": "string", "format": "binary"}}}},
+        request={
+            "multipart/form-data": {
+                "type": "object",
+                "properties": {"file": {"type": "string", "format": "binary"}},
+            }
+        },
         responses={201: DatasetResponseSerializer},
         tags=["Datasets"],
         summary="Upload a CSV or JSON file",
@@ -62,23 +65,18 @@ class DatasetUploadView(APIView):
             row_count=metadata["row_count"],
             column_count=metadata["column_count"],
             column_names=json.dumps(metadata["column_names"]),
-            uploaded_by=request.user if request.user and request.user.is_authenticated else None,
+            uploaded_by=(request.user if request.user and request.user.is_authenticated else None),
             status="PENDING",
         )
 
-        DatasetFile.objects.create(
-            dataset=dataset, file_path=file_path, original_filename=filename
-        )
+        DatasetFile.objects.create(dataset=dataset, file_path=file_path, original_filename=filename)
 
-        return Response(
-            DatasetResponseSerializer(dataset).data, status=status.HTTP_201_CREATED
-        )
+        return Response(DatasetResponseSerializer(dataset).data, status=status.HTTP_201_CREATED)
 
-
-from rest_framework import generics
 
 class DatasetListView(generics.ListAPIView):
     """List all datasets."""
+
     serializer_class = DatasetResponseSerializer
 
     @extend_schema(
