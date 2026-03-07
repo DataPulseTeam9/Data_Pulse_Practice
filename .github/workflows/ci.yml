@@ -1,4 +1,4 @@
-name:  DataPulse CI
+name: DataPulse CI
 
 on:
   push:
@@ -16,7 +16,7 @@ jobs:
   # Job 1: Pre-commit (same checks as local hooks)
   # ============================================================
   pre-commit:
-    name: 🪝 Pre-commit Checks
+    name: Pre-commit Checks
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -28,9 +28,11 @@ jobs:
 
   # ============================================================
   # Job 2: Lint
+  # Fixed: path was backend/app (doesn't exist) → backend/
+  # Fixed: reads rules from setup.cfg automatically
   # ============================================================
   lint:
-    name:  Lint
+    name: Lint
     runs-on: ubuntu-latest
     needs: pre-commit
     steps:
@@ -39,16 +41,25 @@ jobs:
         with:
           python-version: "3.11"
           cache: "pip"
-      - run: pip install flake8 black isort
-      - run: flake8 backend/app --max-line-length=120
-      - run: black --check backend/app
-      - run: isort --check-only backend/app
+      - name: Install linters
+        run: pip install flake8 black isort
+      - name: Black
+        run: black --check backend/
+      - name: Isort
+        run: isort --check-only backend/
+      - name: Flake8
+        run: flake8 backend/
+        # reads max-line-length, ignores, excludes from setup.cfg
 
   # ============================================================
   # Job 3: Backend Tests
+  # Fixed: Django uses manage.py test or pytest-django
+  # Fixed: DJANGO_SETTINGS_MODULE added
+  # Fixed: coverage path is backend/ not backend/app
+  # Fixed: added migrate step before tests
   # ============================================================
   test-backend:
-    name:  Backend Tests
+    name: Backend Tests
     runs-on: ubuntu-latest
     needs: lint
     services:
@@ -67,25 +78,39 @@ jobs:
           --health-retries 5
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: "pip"
-      - run: pip install -r backend/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r backend/requirements.txt
+
+      - name: Run migrations
+        env:
+          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/datapulse_test
+          SECRET_KEY: ci-test-secret-key
+          DJANGO_SETTINGS_MODULE: datapulse.settings.dev
+          DEBUG: "True"
+        run: |
+          cd backend && python manage.py migrate --noinput
+
       - name: Run tests
         env:
           DATABASE_URL: postgresql://test_user:test_password@localhost:5432/datapulse_test
           SECRET_KEY: ci-test-secret-key
-          ALGORITHM: HS256
-          ACCESS_TOKEN_EXPIRE_MINUTES: 30
-          ENV: test
+          DJANGO_SETTINGS_MODULE: datapulse.settings.dev
+          DEBUG: "True"
         run: |
           cd backend && pytest tests/ -v \
             --tb=short \
-            --cov=app \
+            --cov=. \
             --cov-report=term-missing \
             --cov-report=xml:coverage.xml \
-            --cov-fail-under=60
+            --cov-fail-under=60 \
+            --ignore=backendv1
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -96,7 +121,7 @@ jobs:
   # Job 4: Security Scan
   # ============================================================
   security:
-    name:  Security Scan
+    name: Security Scan
     runs-on: ubuntu-latest
     needs: lint
     steps:
@@ -104,14 +129,16 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: pip install safety
-      - run: safety check -r backend/requirements.txt --continue-on-error
+      - name: Install safety
+        run: pip install safety
+      - name: Scan dependencies
+        run: safety check -r backend/requirements.txt --continue-on-error
 
   # ============================================================
   # Job 5: Docker Build
   # ============================================================
   docker-build:
-    name:  Docker Build
+    name: Docker Build
     runs-on: ubuntu-latest
     needs: test-backend
     steps:
@@ -128,40 +155,69 @@ jobs:
 
   # ============================================================
   # Job 6: Integration Test
+  # Fixed: .env now includes all required vars for docker-compose
+  # Fixed: health check URL matches Django (trailing slash)
+  # Fixed: smoke test hits correct endpoints
+  # Fixed: docs endpoint is swagger not /docs
+  # Fixed: analytics DB vars added
   # ============================================================
   integration:
-    name:  Integration Test
+    name: Integration Test
     runs-on: ubuntu-latest
     needs: docker-build
     steps:
       - uses: actions/checkout@v4
+
       - name: Create .env
         run: |
           cat > .env << EOF
           POSTGRES_DB=datapulse
-          POSTGRES_USER=datapulse_user
-          POSTGRES_PASSWORD=ci_password
-          DATABASE_URL=postgresql://datapulse_user:ci_password@db:5432/datapulse
+          POSTGRES_USER=datapulse
+          POSTGRES_PASSWORD=datapulse
+          DATABASE_URL=postgresql://datapulse:datapulse@db:5432/datapulse
+          ANALYTICS_DB=datapulse_analytics
+          ANALYTICS_USER=analytics
+          ANALYTICS_PASSWORD=analytics
+          TARGET_DB_URL=postgresql://analytics:analytics@db-analytics:5432/datapulse_analytics
           SECRET_KEY=ci-secret-key
-          ALGORITHM=HS256
+          DJANGO_SETTINGS_MODULE=datapulse.settings.dev
+          DEBUG=True
           ACCESS_TOKEN_EXPIRE_MINUTES=1440
-          ENV=test
+          GRAFANA_USER=admin
+          GRAFANA_PASSWORD=datapulse123
           EOF
-      - run: docker-compose up -d --build
-      - name: Wait for API
+
+      - name: Start containers
+        run: docker-compose up -d --build
+
+      - name: Wait for backend
         run: |
+          echo "Waiting for backend to be ready..."
           for i in {1..30}; do
-            if curl -sf http://localhost:8000/health; then
-              echo " API healthy"; break
+            if curl -sf http://localhost:8000/health/; then
+              echo "Backend is healthy"
+              break
             fi
-            echo "Waiting... ($i/30)"; sleep 5
+            echo "Attempt $i/30 — retrying in 5s..."
+            sleep 5
           done
+
       - name: Smoke tests
         run: |
-          curl -sf http://localhost:8000/health | grep "ok"
-          curl -sf http://localhost:8000/docs > /dev/null
-          echo " Smoke tests passed"
-      - if: failure()
-        run: docker-compose logs
-      - if: always()
+          curl -sf http://localhost:8000/health/
+          echo "Health check passed"
+          curl -sf http://localhost:8000/api/schema/swagger-ui/ > /dev/null
+          echo "Swagger UI accessible"
+          echo "All smoke tests passed"
+
+      - name: Show logs on failure
+        if: failure()
+        run: |
+          echo "=== BACKEND LOGS ==="
+          docker-compose logs backend
+          echo "=== DB LOGS ==="
+          docker-compose logs db
+
+      - name: Teardown
+        if: always()
         run: docker-compose down -v

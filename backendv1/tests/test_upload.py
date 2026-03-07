@@ -4,14 +4,15 @@ import io
 import pytest
 
 
-@pytest.mark.django_db
 def test_upload_csv_success(client):
     """Test uploading a valid CSV file."""
-    csv_content = b"id,name,age\n1,Alice,30\n2,Bob,25\n3,Carol,35\n"
-    from django.core.files.uploadedfile import SimpleUploadedFile
-
-    uploaded = SimpleUploadedFile("test.csv", csv_content, content_type="text/csv")
-    resp = client.post("/api/datasets/upload", {"file": uploaded}, format="multipart")
+    csv_content = "id,name,age
+1,Alice,30
+2,Bob,25
+3,Carol,35
+"
+    files = {"file": ("test.csv", io.BytesIO(csv_content.encode()), "text/csv")}
+    resp = client.post("/api/datasets/upload", files=files)
     assert resp.status_code == 201
     data = resp.json()
     assert data["name"] == "test"
