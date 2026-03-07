@@ -21,8 +21,13 @@ ALGORITHM = env("ALGORITHM", default="HS256")
 
 # --- Application definition ---
 INSTALLED_APPS = [
+    "django_prometheus",
+    "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
     "corsheaders",
     "rest_framework",
     "drf_spectacular",
@@ -31,11 +36,20 @@ INSTALLED_APPS = [
     "rules",
     "checks",
     "reports",
+    "scheduling",
 ]
 
 MIDDLEWARE = [
+    "django_prometheus.middleware.PrometheusBeforeMiddleware",
     "corsheaders.middleware.CorsMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "django_prometheus.middleware.PrometheusAfterMiddleware",
 ]
 
 ROOT_URLCONF = "datapulse.urls"
@@ -46,9 +60,21 @@ TEMPLATES = [
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         "DIRS": [],
         "APP_DIRS": True,
-        "OPTIONS": {},
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.debug",
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
+            ],
+        },
     },
 ]
+
+# --- Static files ---
+STATIC_URL = "static/"
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 # --- Database ---
 DATABASES = {
@@ -67,11 +93,13 @@ REST_FRAMEWORK = {
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": (
-        "rest_framework.permissions.AllowAny",
+        "rest_framework.permissions.IsAuthenticated",
     ),
     "EXCEPTION_HANDLER": "datapulse.exception_handler.custom_exception_handler",
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "UNAUTHENTICATED_USER": None,
+    "DEFAULT_PAGINATION_CLASS": "datapulse.pagination.DataPulsePagination",
+    "PAGE_SIZE": 20,
     "DEFAULT_THROTTLE_CLASSES": [
         "rest_framework.throttling.AnonRateThrottle",
         "rest_framework.throttling.UserRateThrottle",
@@ -105,8 +133,27 @@ PASSWORD_HASHERS = [
     "django.contrib.auth.hashers.PBKDF2PasswordHasher",
 ]
 
-# --- File Uploads ---
+# --- File Uploads & Static Files ---
 UPLOAD_DIR = env("UPLOAD_DIR", default=os.path.join(BASE_DIR, "uploads"))
+STATIC_URL = "static/"
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
+
+# --- Celery (for scheduled tasks) ---
+CELERY_BROKER_URL = env("CELERY_BROKER_URL", default="redis://localhost:6379/0")
+CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default="redis://localhost:6379/0")
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_TIMEZONE = "UTC"
+
+# --- Email (for notifications) ---
+EMAIL_BACKEND = env("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend")
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="datapulse@amalitech.com")
+EMAIL_HOST = env("EMAIL_HOST", default="localhost")
+EMAIL_PORT = env.int("EMAIL_PORT", default=587)
+EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=True)
+EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
 
 # --- Logging (Structlog Base) ---
 import structlog
@@ -128,6 +175,10 @@ LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     "formatters": {
+        "standard": {
+            "format": "[%(asctime)s] %(levelname)s [%(name)s:%(lineno)s] %(message)s",
+            "datefmt": "%d/%b/%Y %H:%M:%S"
+        },
         "structlog_formatter": {
             "()": structlog.stdlib.ProcessorFormatter,
             "processors": [
@@ -141,15 +192,22 @@ LOGGING = {
             "class": "logging.StreamHandler",
             "formatter": "structlog_formatter",
         },
+        "standard_console": {
+            "class": "logging.StreamHandler",
+            "formatter": "standard",
+        },
     },
     "loggers": {
+        "django": {"handlers": ["standard_console"], "level": "INFO", "propagate": False},
+        "django.request": {"handlers": ["standard_console"], "level": "ERROR", "propagate": False},
+        "django.server": {"handlers": ["standard_console"], "level": "INFO", "propagate": False},
         # Route all custom app logs through structlog
         "authentication": {"handlers": ["console"], "level": "INFO", "propagate": False},
         "datasets": {"handlers": ["console"], "level": "INFO", "propagate": False},
         "rules": {"handlers": ["console"], "level": "INFO", "propagate": False},
         "checks": {"handlers": ["console"], "level": "INFO", "propagate": False},
         "reports": {"handlers": ["console"], "level": "INFO", "propagate": False},
-        # You can optionally route django or other loggers here as well
+        "scheduling": {"handlers": ["console"], "level": "INFO", "propagate": False},
     },
 }
 

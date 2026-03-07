@@ -1,4 +1,4 @@
-"""Validation engine - PARTIAL implementation."""
+"""Validation engine - FULLY IMPLEMENTED."""
 
 import json
 import re
@@ -12,7 +12,11 @@ class ValidationEngine:
         """Run all validation checks. Returns list of result dicts."""
         results = []
         for rule in rules:
-            params = json.loads(rule.parameters) if rule.parameters else {}
+            try:
+                params = json.loads(rule.parameters) if rule.parameters and str(rule.parameters).strip() else {}
+            except json.JSONDecodeError:
+                params = {}
+                
             if rule.rule_type == "NOT_NULL":
                 result = self.null_check(df, rule.field_name)
             elif rule.rule_type == "DATA_TYPE":
@@ -43,52 +47,102 @@ class ValidationEngine:
             "details": f"{null_count} null values found in {field}",
         }
 
-    def type_check(self, df, field, expected_type):
-        """Check data types - TODO: Implement.
+    def type_check(self, df: pd.DataFrame, field: str, expected_type: str) -> dict:
+        """Check data types by attempting coercion to the expected type.
 
-        Steps:
-        1. Verify field exists in df
-        2. Check if values can be cast to expected_type
-        3. Count rows that fail the type check
-        4. Return result dict with passed/failed_rows/details
+        Supported expected_type values: 'int', 'float', 'numeric', 'str', 'datetime', 'bool'.
         """
-        # TODO: Implement type checking logic
-        return {"passed": False, "failed_rows": 0, "total_rows": len(df),
-            "details": "type_check not yet implemented"}
+        if field not in df.columns:
+            return {"passed": False, "failed_rows": len(df), "total_rows": len(df),
+                "details": f"Field {field} not found in dataset"}
 
-    def range_check(self, df, field, min_val, max_val):
-        """Check value ranges - TODO: Implement.
+        total = len(df)
+        non_null = df[field].dropna()
 
-        Steps:
-        1. Verify field exists and is numeric
-        2. Count rows where value < min_val or value > max_val
-        3. Return result dict
-        """
-        # TODO: Implement range checking logic
-        return {"passed": False, "failed_rows": 0, "total_rows": len(df),
-            "details": "range_check not yet implemented"}
+        if expected_type in ("int", "float", "numeric"):
+            converted = pd.to_numeric(non_null, errors="coerce")
+            failed_count = int(converted.isna().sum())
+            if expected_type == "int" and failed_count == 0:
+                # additionally check that surviving values are whole numbers
+                failed_count = int((converted != converted.round(0)).sum())
+        elif expected_type == "datetime":
+            converted = pd.to_datetime(non_null, errors="coerce")
+            failed_count = int(converted.isna().sum())
+        elif expected_type == "bool":
+            valid_bools = {"true", "false", "1", "0", "yes", "no"}
+            failed_count = int(~non_null.astype(str).str.lower().isin(valid_bools)).sum()
+        elif expected_type == "str":
+            # Everything is representable as string
+            failed_count = 0
+        else:
+            return {"passed": False, "failed_rows": total, "total_rows": total,
+                "details": f"Unsupported expected_type: {expected_type}"}
 
-    def unique_check(self, df, field):
-        """Check uniqueness - TODO: Implement.
+        return {
+            "passed": failed_count == 0,
+            "failed_rows": failed_count,
+            "total_rows": total,
+            "details": f"{failed_count} rows failed {expected_type} type check on {field}",
+        }
 
-        Steps:
-        1. Verify field exists
-        2. Count duplicate values
-        3. Return result dict
-        """
-        # TODO: Implement uniqueness checking logic
-        return {"passed": False, "failed_rows": 0, "total_rows": len(df),
-            "details": "unique_check not yet implemented"}
+    def range_check(self, df: pd.DataFrame, field: str, min_val, max_val) -> dict:
+        """Check that numeric values fall within [min_val, max_val]."""
+        if field not in df.columns:
+            return {"passed": False, "failed_rows": len(df), "total_rows": len(df),
+                "details": f"Field {field} not found in dataset"}
 
-    def regex_check(self, df, field, pattern):
-        """Check regex pattern matching - TODO: Implement.
+        total = len(df)
+        numeric = pd.to_numeric(df[field], errors="coerce")
+        non_numeric_count = int(numeric.isna().sum() - df[field].isna().sum())
 
-        Steps:
-        1. Verify field exists
-        2. Apply regex pattern to each non-null value
-        3. Count rows that do not match
-        4. Return result dict
-        """
-        # TODO: Implement regex checking logic
-        return {"passed": False, "failed_rows": 0, "total_rows": len(df),
-            "details": "regex_check not yet implemented"}
+        failed_count = non_numeric_count
+        if min_val is not None:
+            failed_count += int((numeric < float(min_val)).sum())
+        if max_val is not None:
+            failed_count += int((numeric > float(max_val)).sum())
+
+        return {
+            "passed": failed_count == 0,
+            "failed_rows": failed_count,
+            "total_rows": total,
+            "details": f"{failed_count} rows out of range [{min_val}, {max_val}] on {field}",
+        }
+
+    def unique_check(self, df: pd.DataFrame, field: str) -> dict:
+        """Check that all values in a field are unique (no duplicates)."""
+        if field not in df.columns:
+            return {"passed": False, "failed_rows": len(df), "total_rows": len(df),
+                "details": f"Field {field} not found in dataset"}
+
+        total = len(df)
+        duplicate_count = int(df[field].duplicated(keep=False).sum())
+
+        return {
+            "passed": duplicate_count == 0,
+            "failed_rows": duplicate_count,
+            "total_rows": total,
+            "details": f"{duplicate_count} duplicate values found in {field}",
+        }
+
+    def regex_check(self, df: pd.DataFrame, field: str, pattern: str) -> dict:
+        """Check that all non-null values match the given regex pattern."""
+        if field not in df.columns:
+            return {"passed": False, "failed_rows": len(df), "total_rows": len(df),
+                "details": f"Field {field} not found in dataset"}
+
+        if not pattern:
+            return {"passed": False, "failed_rows": len(df), "total_rows": len(df),
+                "details": "No regex pattern provided"}
+
+        total = len(df)
+        non_null = df[field].dropna()
+        matches = non_null.astype(str).str.fullmatch(pattern)
+        failed_count = int((~matches).sum())
+
+        return {
+            "passed": failed_count == 0,
+            "failed_rows": failed_count,
+            "total_rows": total,
+            "details": f"{failed_count} rows did not match pattern '{pattern}' on {field}",
+        }
+
