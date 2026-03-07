@@ -66,36 +66,49 @@ class RuleDetailView(APIView):
         request=RuleUpdateSerializer,
         responses={200: RuleResponseSerializer},
         tags=["Rules"],
-        summary="Update a validation rule (TODO)",
+        summary="Update a validation rule",
     )
     def put(self, request, rule_id):
-        """Update a validation rule - TODO: Implement.
+        """Update a validation rule."""
+        try:
+            rule = ValidationRule.objects.get(id=rule_id, is_active=True)
+        except ValidationRule.DoesNotExist:
+            from datapulse.exceptions import RuleNotFoundException
+            raise RuleNotFoundException(f"Rule with id {rule_id} not found")
 
-        Steps:
-        1. Fetch rule by ID (404 if not found)
-        2. Update non-None fields from rule_data
-        3. Validate rule_type and severity if changed
-        4. Commit and return updated rule
-        """
+        serializer = RuleUpdateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        # Update only fields that were provided (non-None)
+        for field, value in data.items():
+            if value is not None:
+                setattr(rule, field, value)
+
+        # Validate rule_type and severity if they were changed
+        if rule.rule_type not in VALID_TYPES:
+            raise InvalidRuleException(f"Invalid rule_type: {VALID_TYPES}")
+        if rule.severity not in VALID_SEVERITIES:
+            raise InvalidRuleException(f"Invalid severity: {VALID_SEVERITIES}")
+
+        rule.save()
         return Response(
-            {"detail": "PUT /api/rules/{id} not implemented"},
-            status=status.HTTP_501_NOT_IMPLEMENTED,
+            RuleResponseSerializer(rule).data, status=status.HTTP_200_OK
         )
 
     @extend_schema(
         responses={204: None},
         tags=["Rules"],
-        summary="Delete a validation rule (TODO)",
+        summary="Delete a validation rule",
     )
     def delete(self, request, rule_id):
-        """Soft-delete a validation rule - TODO: Implement.
+        """Soft-delete a validation rule by setting is_active=False."""
+        try:
+            rule = ValidationRule.objects.get(id=rule_id, is_active=True)
+        except ValidationRule.DoesNotExist:
+            from datapulse.exceptions import RuleNotFoundException
+            raise RuleNotFoundException(f"Rule with id {rule_id} not found")
 
-        Steps:
-        1. Fetch rule by ID (404 if not found)
-        2. Set is_active = False
-        3. Save, return 204
-        """
-        return Response(
-            {"detail": "DELETE /api/rules/{id} not implemented"},
-            status=status.HTTP_501_NOT_IMPLEMENTED,
-        )
+        rule.is_active = False
+        rule.save()
+        return Response(status=status.HTTP_204_NO_CONTENT)

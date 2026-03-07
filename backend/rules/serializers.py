@@ -1,34 +1,68 @@
-"""Rule serializers matching original Pydantic schemas."""
+"""Rule serializers."""
 
 from rest_framework import serializers
+from rules.models import ValidationRule
 
 
-class RuleCreateSerializer(serializers.Serializer):
-    name = serializers.CharField()
-    dataset_type = serializers.CharField()
-    field_name = serializers.CharField()
-    rule_type = serializers.CharField()
-    parameters = serializers.CharField(required=False, allow_null=True, default=None)
-    severity = serializers.CharField(default="MEDIUM")
+class RuleCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ValidationRule
+        fields = ["name", "dataset_type", "field_name", "rule_type", "parameters", "severity"]
+
+    def validate_parameters(self, value):
+        if not value or not str(value).strip():
+            return value
+        import json
+        import re
+        try:
+            json.loads(value)
+            return value
+        except json.JSONDecodeError:
+            # Auto-fix unescaped backslashes often sent by Swagger for regex rules
+            fixed_value = re.sub(r'(?<!\\)\\(?![\\"/bfnrtu])', r'\\\\', value)
+            try:
+                json.loads(fixed_value)
+                return fixed_value
+            except json.JSONDecodeError:
+                raise serializers.ValidationError("Parameters must be a valid JSON string.")
 
 
-class RuleResponseSerializer(serializers.Serializer):
-    id = serializers.IntegerField()
-    name = serializers.CharField()
-    dataset_type = serializers.CharField()
-    field_name = serializers.CharField()
-    rule_type = serializers.CharField()
-    parameters = serializers.CharField(allow_null=True)
-    severity = serializers.CharField()
-    is_active = serializers.BooleanField()
-    created_at = serializers.DateTimeField()
+class RuleResponseSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ValidationRule
+        fields = [
+            "id", "name", "dataset_type", "field_name", "rule_type", 
+            "parameters", "severity", "is_active", "created_at"
+        ]
 
 
-class RuleUpdateSerializer(serializers.Serializer):
-    name = serializers.CharField(required=False, allow_null=True)
-    dataset_type = serializers.CharField(required=False, allow_null=True)
-    field_name = serializers.CharField(required=False, allow_null=True)
-    rule_type = serializers.CharField(required=False, allow_null=True)
-    parameters = serializers.CharField(required=False, allow_null=True)
-    severity = serializers.CharField(required=False, allow_null=True)
-    is_active = serializers.BooleanField(required=False, allow_null=True)
+class RuleUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ValidationRule
+        fields = ["name", "dataset_type", "field_name", "rule_type", "parameters", "severity", "is_active"]
+        extra_kwargs = {
+            "name": {"required": False},
+            "dataset_type": {"required": False},
+            "field_name": {"required": False},
+            "rule_type": {"required": False},
+            "parameters": {"required": False},
+            "severity": {"required": False},
+            "is_active": {"required": False},
+        }
+
+    def validate_parameters(self, value):
+        if not value or not str(value).strip():
+            return value
+        import json
+        import re
+        try:
+            json.loads(value)
+            return value
+        except json.JSONDecodeError:
+            # Auto-fix unescaped backslashes often sent by Swagger for regex rules
+            fixed_value = re.sub(r'(?<!\\)\\(?![\\"/bfnrtu])', r'\\\\', value)
+            try:
+                json.loads(fixed_value)
+                return fixed_value
+            except json.JSONDecodeError:
+                raise serializers.ValidationError("Parameters must be a valid JSON string.")

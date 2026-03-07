@@ -14,3 +14,4 @@ htmlcov/
 Thumbs.db
 backend/uploads/*
 !backend/uploads/.gitkeep
+backendv2/gunicorn.ctl
