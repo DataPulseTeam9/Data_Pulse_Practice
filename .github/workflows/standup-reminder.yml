@@ -1,18 +1,17 @@
-name:  Daily Standup Reminder
+name: Daily Standup
 
 on:
   schedule:
-    - cron: "0 7 * * 1-5"   # 7am every weekday (UTC)
-  workflow_dispatch:          # allow manual trigger
+    - cron: "0 7 * * 1-5"
+  workflow_dispatch:
 
 permissions:
   issues: write
 
 jobs:
   standup:
-    name: Post standup reminder
+    name: Create Standup Issue
     runs-on: ubuntu-latest
-
     steps:
       - name: Create standup issue
         uses: actions/github-script@v7
@@ -22,28 +21,28 @@ jobs:
             const day = new Date().toLocaleDateString('en-US', { weekday: 'long' });
 
             const body = `
-            ##  Daily Standup — ${day} ${today}
+            ## 💬 Daily Standup - ${day} ${today}
 
-            Each team member replies to this issue with:
+            Each team member replies with:
 
             **1. What did I complete yesterday?**
             (Link the PR or issue you finished)
 
-            **2.  What am I working on today?**
+            **2. What am I working on today?**
             (Link your current task on the project board)
 
-            **3.  Any blockers?**
+            **3. Any blockers?**
             (Tag @Asheryram for DevOps issues, or the relevant teammate)
 
             ---
-            > Move your tasks on the [Project Board](../../projects) to reflect your current status.
-            > Close this issue once standup is done.
+            > Update your tasks on the [Project Board](../../projects)
+            > Close this issue once standup is complete
             `;
 
             await github.rest.issues.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              title: ` Standup — ${today}`,
+              title: `💬 Standup - ${today}`,
               body: body,
               labels: ['standup'],
               assignees: [

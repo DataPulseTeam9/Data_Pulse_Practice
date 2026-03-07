@@ -1,4 +1,4 @@
-name:  Scrum Board Automation
+name: Scrum Automation
 
 on:
   pull_request:
@@ -14,17 +14,12 @@ permissions:
   issues: write
 
 jobs:
-
-  # ============================================================
-  # When a PR is opened → add label "in-review"
-  # ============================================================
   pr-opened:
-    name: PR Opened → In Review
+    name: Label PR as In Review
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request' && github.event.action == 'opened'
-
     steps:
-      - name: Label PR as in-review
+      - name: Add in-review label
         uses: actions/github-script@v7
         with:
           script: |
@@ -34,16 +29,12 @@ jobs:
               issue_number: context.payload.pull_request.number,
               labels: ['status: in-review']
             });
-            console.log(' Labeled PR as in-review');
+            console.log('✓ Labeled PR as in-review');
 
-  # ============================================================
-  # When PR is merged → label linked issue as done
-  # ============================================================
   pr-merged:
-    name: PR Merged → Done
+    name: Mark PR as Done
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true
-
     steps:
       - name: Comment on merged PR
         uses: actions/github-script@v7
@@ -53,26 +44,21 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.payload.pull_request.number,
-              body: ' This PR has been merged. Move your task to **Done** on the project board.'
+              body: '✓ This PR has been merged. Move your task to **Done** on the project board.'
             });
 
-  # ============================================================
-  # When review requests changes → label PR as needs-work
-  # ============================================================
   review-changes-requested:
-    name: Review → Needs Work
+    name: Label PR as Needs Work
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request_review' && github.event.review.state == 'changes_requested'
-
     steps:
-      - name: Label PR as needs-work
+      - name: Update labels and notify
         uses: actions/github-script@v7
         with:
           script: |
             const pr = context.payload.pull_request;
             const reviewer = context.payload.review.user.login;
 
-            // Remove in-review label, add needs-work
             try {
               await github.rest.issues.removeLabel({
                 owner: context.repo.owner,
@@ -80,7 +66,7 @@ jobs:
                 issue_number: pr.number,
                 name: 'status: in-review'
               });
-            } catch (e) { /* label might not exist */ }
+            } catch (e) {}
 
             await github.rest.issues.addLabels({
               owner: context.repo.owner,
@@ -93,19 +79,15 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: pr.number,
-              body: `@${pr.user.login} — @${reviewer} has requested changes. Please update your PR and re-request review.`
+              body: `@${pr.user.login} - @${reviewer} has requested changes. Please update your PR and re-request review.`
             });
 
-  # ============================================================
-  # When review approves → label PR as approved
-  # ============================================================
   review-approved:
-    name: Review → Approved
+    name: Label PR as Approved
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request_review' && github.event.review.state == 'approved'
-
     steps:
-      - name: Label PR as approved
+      - name: Update labels and notify
         uses: actions/github-script@v7
         with:
           script: |
@@ -119,7 +101,7 @@ jobs:
                 issue_number: pr.number,
                 name: 'status: in-review'
               });
-            } catch (e) { /* label might not exist */ }
+            } catch (e) {}
 
             await github.rest.issues.addLabels({
               owner: context.repo.owner,
@@ -132,5 +114,5 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: pr.number,
-              body: `@${reviewer} has approved the PR. Ready to merge!`
+              body: `✓ @${reviewer} has approved the PR. Ready to merge!`
             });

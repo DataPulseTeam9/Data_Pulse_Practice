@@ -1,22 +1,29 @@
 ---
-name:  Task
-about: A development task for the sprint
-title: "[ROLE] short description"
-labels: ""
+name: Task
+about: Development task for sprint backlog
+title: "[COMPONENT] Brief description"
+labels: "type: task"
 assignees: ""
 ---
 
-## 📋 Description
+## Description
 What needs to be done and why.
 
-## ✅ Acceptance Criteria
-- [ ] Specific thing that must be true when this is done
-- [ ] Another specific condition
+## Acceptance Criteria
+- [ ] Specific deliverable or condition
+- [ ] Another specific deliverable
 - [ ] Tests written and passing
+- [ ] Documentation updated
 
-## 🔗 Related
+## Story Points
+<!-- Estimate: 1, 2, 3, 5, 8, 13 -->
+
+## Sprint
+<!-- Sprint number or leave blank -->
+
+## Dependencies
 - Depends on: #
 - Blocks: #
 
-## 📝 Notes
-Any extra context, design decisions, or links.
+## Technical Notes
+<!-- Implementation details, design decisions, or references -->
