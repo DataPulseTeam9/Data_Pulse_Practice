@@ -1,56 +1,56 @@
-name: Daily Standup
+# name: Daily Standup
 
-on:
-  schedule:
-    - cron: "0 7 * * 1-5"
-  workflow_dispatch:
+# on:
+#   schedule:
+#     - cron: "0 7 * * 1-5"
+#   workflow_dispatch:
 
-permissions:
-  issues: write
+# permissions:
+#   issues: write
 
-jobs:
-  standup:
-    name: Create Standup Issue
-    runs-on: ubuntu-latest
-    steps:
-      - name: Create standup issue
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const today = new Date().toISOString().split('T')[0];
-            const day = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+# jobs:
+#   standup:
+#     name: Create Standup Issue
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Create standup issue
+#         uses: actions/github-script@v7
+#         with:
+#           script: |
+#             const today = new Date().toISOString().split('T')[0];
+#             const day = new Date().toLocaleDateString('en-US', { weekday: 'long' });
 
-            const body = `
-            ## 💬 Daily Standup - ${day} ${today}
+#             const body = `
+#             ## 💬 Daily Standup - ${day} ${today}
 
-            Each team member replies with:
+#             Each team member replies with:
 
-            **1. What did I complete yesterday?**
-            (Link the PR or issue you finished)
+#             **1. What did I complete yesterday?**
+#             (Link the PR or issue you finished)
 
-            **2. What am I working on today?**
-            (Link your current task on the project board)
+#             **2. What am I working on today?**
+#             (Link your current task on the project board)
 
-            **3. Any blockers?**
-            (Tag @Asheryram for DevOps issues, or the relevant teammate)
+#             **3. Any blockers?**
+#             (Tag @Asheryram for DevOps issues, or the relevant teammate)
 
-            ---
-            > Update your tasks on the [Project Board](../../projects)
-            > Close this issue once standup is complete
-            `;
+#             ---
+#             > Update your tasks on the [Project Board](../../projects)
+#             > Close this issue once standup is complete
+#             `;
 
-            await github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: `💬 Standup - ${today}`,
-              body: body,
-              labels: ['standup'],
-              assignees: [
-                'lubandi',
-                'IshimweDiane',
-                'JoeBright1619',
-                'Kalisha1234',
-                'Zaina-M',
-                'Asheryram'
-              ]
-            });
+#             await github.rest.issues.create({
+#               owner: context.repo.owner,
+#               repo: context.repo.repo,
+#               title: `💬 Standup - ${today}`,
+#               body: body,
+#               labels: ['standup'],
+#               assignees: [
+#                 'lubandi',
+#                 'IshimweDiane',
+#                 'JoeBright1619',
+#                 'Kalisha1234',
+#                 'Zaina-M',
+#                 'Asheryram'
+#               ]
+#             });
